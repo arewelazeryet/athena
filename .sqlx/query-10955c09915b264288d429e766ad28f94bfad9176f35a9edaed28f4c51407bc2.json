@@ -1,0 +1,122 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nSELECT\n    COALESCE(EXTRACT(EPOCH FROM day_bucket)::BIGINT, 0) as \"day_bucket!\",\n    ruleset_id as \"ruleset_id!\",\n    client_type as \"client_type!\",\n\n    hll_cardinality(user_hll) as \"unique_user_count!\",\n    hll_cardinality(beatmap_hll) as \"unique_beatmap_count!\",\n\n    total_daily_scores as \"total_daily_scores!\",\n    daily_scores_with_replays as \"daily_scores_with_replays!\",\n    daily_perfect_combos as \"daily_perfect_combos!\",\n\n    daily_min_pp as \"daily_min_pp!\",\n    daily_max_pp as \"daily_max_pp!\",\n    daily_sum_pp as \"daily_sum_pp!\",\n\n    daily_sum_total_score as \"daily_sum_total_score!\",\n    daily_sum_classic_total_score as \"daily_sum_classic_total_score!\",\n    daily_sum_legacy_total_score as \"daily_sum_legacy_total_score!\",\n\n    daily_max_classic_total_score as \"daily_max_classic_total_score!\",\n    daily_max_legacy_total_score as \"daily_max_legacy_total_score!\",\n\n    daily_sum_accuracy as \"daily_sum_accuracy!\",\n    daily_peak_combo as \"daily_peak_combo!\"\n\nFROM scores_daily_historic;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "day_bucket!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "ruleset_id!",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 2,
+        "name": "client_type!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "unique_user_count!",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 4,
+        "name": "unique_beatmap_count!",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 5,
+        "name": "total_daily_scores!",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "daily_scores_with_replays!",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "daily_perfect_combos!",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 8,
+        "name": "daily_min_pp!",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 9,
+        "name": "daily_max_pp!",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 10,
+        "name": "daily_sum_pp!",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 11,
+        "name": "daily_sum_total_score!",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 12,
+        "name": "daily_sum_classic_total_score!",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 13,
+        "name": "daily_sum_legacy_total_score!",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 14,
+        "name": "daily_max_classic_total_score!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 15,
+        "name": "daily_max_legacy_total_score!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 16,
+        "name": "daily_sum_accuracy!",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 17,
+        "name": "daily_peak_combo!",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null,
+      true,
+      true,
+      null,
+      null,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "10955c09915b264288d429e766ad28f94bfad9176f35a9edaed28f4c51407bc2"
+}

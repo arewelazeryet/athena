@@ -1,5 +1,7 @@
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use color_eyre::eyre::{Context, Result};
-use metrics::{counter, histogram};
+use metrics::{Unit, counter, describe_counter, describe_gauge, gauge, histogram};
 use sqlx::{query, query_as, types::Json};
 use time::OffsetDateTime;
 
@@ -68,6 +70,12 @@ impl Database {
 
         counter!("ushio.scores_inserted_total").increment(batch_length as u64);
         histogram!("ushio.scores_inserted_latest").record(batch_length as f64);
+        gauge!("ushio.last_inserted_time").set(
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs_f64(),
+        );
 
         Ok(())
     }

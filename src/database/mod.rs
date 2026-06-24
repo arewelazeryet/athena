@@ -1,3 +1,4 @@
+mod aggregates;
 pub(crate) mod impls;
 pub(crate) mod models;
 

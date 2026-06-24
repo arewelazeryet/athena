@@ -1,3 +1,5 @@
+use std::default;
+
 use rosu_mods::GameMod;
 use rosu_v2::model::{
     GameMode, Grade,
@@ -140,4 +142,95 @@ impl From<rosu_v2::model::score::ScoreStatistics> for ScoreStatistics {
             legacy_combo_increase: none_if_default!(value.legacy_combo_increase),
         }
     }
+}
+
+#[derive(Default, Debug, Deserialize, Serialize, sqlx::Type)]
+#[sqlx(type_name = "ClientType")]
+#[serde(rename_all = "lowercase")]
+pub enum ClientType {
+    Stable = 0,
+    #[default]
+    Lazer = 1,
+}
+impl From<String> for ClientType {
+    fn from(value: String) -> Self {
+        match value.as_ref() {
+            "stable" => ClientType::Stable,
+            "lazer" => ClientType::Lazer,
+            _ => unreachable!(),
+        }
+    }
+}
+impl From<i32> for ClientType {
+    fn from(value: i32) -> Self {
+        match value {
+            0 => Self::Stable,
+            1 => Self::Lazer,
+            _ => unreachable!(),
+        }
+    }
+}
+
+#[derive(Default, Debug, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ScoreGameMode {
+    /// osu!standard
+    #[default]
+    Osu = 0,
+    /// osu!taiko
+    Taiko = 1,
+    /// osu!catch
+    Catch = 2,
+    /// osu!mania
+    Mania = 3,
+}
+
+// impl TryFrom<i16> for ScoreGameMode {
+//     type Error = ();
+
+//     fn try_from(value: i16) -> Result<Self, Self::Error> {
+//         match value {
+//             0 => Ok(Self::Osu),
+//             1 => Ok(Self::Taiko),
+//             2 => Ok(Self::Catch),
+//             3 => Ok(Self::Mania),
+//             _ => Err(()),
+//         }
+//     }
+// }
+
+impl From<i16> for ScoreGameMode {
+    fn from(value: i16) -> Self {
+        match value {
+            0 => Self::Osu,
+            1 => Self::Taiko,
+            2 => Self::Catch,
+            3 => Self::Mania,
+            _ => unreachable!(),
+        }
+    }
+}
+
+#[derive(sqlx::FromRow, Serialize)]
+pub(crate) struct ScoresAggregate {
+    pub day_bucket: i64,
+    #[sqlx(try_from = "i16")]
+    pub ruleset_id: ScoreGameMode,
+    #[sqlx(try_from = "i32")]
+    pub client_type: ClientType,
+    pub unique_user_count: f64,
+    pub unique_beatmap_count: f64,
+    pub total_daily_scores: bigdecimal::BigDecimal,
+    pub daily_scores_with_replays: bigdecimal::BigDecimal,
+    pub daily_perfect_combos: bigdecimal::BigDecimal,
+    pub daily_min_pp: f64,
+    pub daily_max_pp: f64,
+    pub daily_sum_pp: f64,
+    pub daily_sum_total_score: bigdecimal::BigDecimal,
+    pub daily_sum_classic_total_score: bigdecimal::BigDecimal,
+    pub daily_sum_legacy_total_score: bigdecimal::BigDecimal,
+    pub daily_max_classic_total_score: i64,
+    pub daily_max_legacy_total_score: i64,
+    pub daily_sum_accuracy: f64,
+    pub daily_peak_combo: i32,
 }

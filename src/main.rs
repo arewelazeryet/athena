@@ -8,6 +8,7 @@ use axum::Router;
 use color_eyre::{Result, eyre::bail};
 use dotenvy::dotenv;
 use futures::{SinkExt, StreamExt};
+use metrics::{Unit, describe_gauge};
 use rosu_v2::model::{
     GameMode, Grade,
     mods::GameMods,
@@ -18,6 +19,7 @@ use time::OffsetDateTime;
 use tokio_tungstenite::tungstenite::{Error, protocol::Message};
 
 use crate::{
+    api::aggregates,
     database::{Database, impls::LatestScore, models::DatabaseScore},
     state::{AppState, SharedState},
 };
@@ -75,7 +77,16 @@ async fn main() -> Result<()> {
     };
     tracing::info!(%addr, "Listening for HTTP requests");
 
-    let app: Router = Router::new().nest("/api", api::router()).with_state(state);
+    let app: Router = Router::new()
+        .nest("/api", api::router())
+        .nest("/api", aggregates::router())
+        .with_state(state);
+
+    describe_gauge!(
+        "ushio.last_inserted_time",
+        Unit::Seconds,
+        "Timestamp of latest insertion"
+    );
 
     tokio::select! {
         _ = process_scores(&mut read, clone) => {},
