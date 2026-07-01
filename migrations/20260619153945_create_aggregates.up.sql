@@ -3,7 +3,7 @@
 CREATE EXTENSION IF NOT EXISTS hll;
 
 -- Baseline s/m aggregate
-CREATE MATERIALIZED VIEW scores_per_minute
+CREATE MATERIALIZED VIEW IF NOT EXISTS scores_per_minute
 WITH (timescaledb.continuous) AS
 SELECT
     time_bucket('1 minute', ended_at) AS bucket,
@@ -45,12 +45,13 @@ GROUP BY bucket, ruleset_id, client_type WITH NO DATA;
 SELECT add_continuous_aggregate_policy('scores_per_minute',
     start_offset => INTERVAL '5 minutes',
     end_offset => INTERVAL '0 minutes',
-    schedule_interval => INTERVAL '1 minute');
+    schedule_interval => INTERVAL '1 minute',
+    if_not_exists => true);
 
 -- We need to fill the gap before this anyway
 -- SELECT add_retention_policy('scores_per_minute', drop_after => INTERVAL '2 days');
 
-CREATE MATERIALIZED VIEW scores_daily_historic
+CREATE MATERIALIZED VIEW IF NOT EXISTS scores_daily_historic
 WITH (timescaledb.continuous) AS
 SELECT
     time_bucket('1 day', bucket) AS day_bucket,
@@ -85,4 +86,5 @@ SELECT add_continuous_aggregate_policy('scores_daily_historic',
     end_offset => INTERVAL '1 hour',
     schedule_interval => INTERVAL '1 day',
     initial_start => '2025-10-10 00:00:00',
+    if_not_exists => true,
     timezone => 'UTC');
