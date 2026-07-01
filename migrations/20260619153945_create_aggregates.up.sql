@@ -84,5 +84,5 @@ SELECT add_continuous_aggregate_policy('scores_daily_historic',
     start_offset => INTERVAL '50 hours',
     end_offset => INTERVAL '1 hour',
     schedule_interval => INTERVAL '1 day',
-    initial_start => '2025-06-20 00:00:00',
+    initial_start => '2025-10-10 00:00:00',
     timezone => 'UTC');
