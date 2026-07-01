@@ -16,11 +16,18 @@ pub struct BucketedResponse {
     pub bucket_floor: String,
     pub stable: i64,
     pub lazer: i64,
+    pub both: i64,
 }
 
 pub struct LatestScore {
     pub ended_at: OffsetDateTime,
     pub id: i64,
+}
+
+pub enum TimePeriod {
+    Hour,
+    Day,
+    Week,
 }
 
 impl Database {
@@ -117,27 +124,37 @@ impl Database {
         result
     }
 
-    pub async fn get_daily_unique_users(&self) -> Result<Vec<BucketedResponse>> {
+    pub async fn get_unique_users(&self) -> Result<Vec<BucketedResponse>> {
         counter!("ushio.database.get_daily_unique_users.query_count").increment(1);
 
         let result = query_as!(BucketedResponse,
-            r#"
+                r#"
             WITH bucketed_users AS (
                 SELECT
-                    lazer,
                     user_id,
+                    lazer,
                     (user_id / 2000000) * 2000000 AS bucket_floor
                 FROM scores
                 WHERE ended_at >= NOW() - INTERVAL '24 hours'
+            ),
+            user_bucket_flags AS (
+                SELECT
+                    user_id,
+                    bucket_floor,
+                    BOOL_OR(lazer = true)  AS has_lazer,
+                    BOOL_OR(lazer = false) AS has_stable
+                FROM bucketed_users
+                GROUP BY user_id, bucket_floor
             )
             SELECT
                 CONCAT(bucket_floor / 1000000, 'M - ', (bucket_floor / 1000000) + 2, 'M') AS "bucket_floor!",
-                COUNT(DISTINCT user_id) FILTER (WHERE lazer = false) AS "stable!",
-                COUNT(DISTINCT user_id) FILTER (WHERE lazer = true)  AS "lazer!"
-            FROM bucketed_users
+                COUNT(*) FILTER (WHERE has_stable AND NOT has_lazer) AS "stable!",
+                COUNT(*) FILTER (WHERE has_lazer AND NOT has_stable) AS "lazer!",
+                COUNT(*) FILTER (WHERE has_lazer AND has_stable)     AS "both!"
+            FROM user_bucket_flags
             GROUP BY bucket_floor
             ORDER BY bucket_floor ASC;
-            "#).fetch_all(&*self).await.wrap_err("Failed to get daily unique users");
+                "#).fetch_all(&*self).await.wrap_err("Failed to get daily unique users");
 
         result
     }

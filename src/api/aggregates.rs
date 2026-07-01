@@ -14,8 +14,8 @@ pub async fn get_daily_aggregate_graph(
         .get_daily_historic_graphs()
         .await
         .inspect_err(|e| tracing::warn!("Failed to return daily historic graphs: {e}"))
-        .map_err(|e| StatusCode::INTERNAL_SERVER_ERROR)?
-        .into_iter()
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .iter()
         .map(|s| s.into())
         .collect::<Vec<_>>()
         .apply(Json)

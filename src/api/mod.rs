@@ -1,7 +1,10 @@
 pub mod aggregates;
-mod models;
+pub mod models;
 
-use crate::state::{AppState, SharedState};
+use crate::{
+    database::impls::BucketedResponse,
+    state::{AppState, SharedState},
+};
 use apply::Apply as _;
 use axum::{
     Json, Router,
@@ -12,11 +15,23 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
-#[derive(Serialize, Debug)]
-struct UserIdDistributionEntry {
+#[derive(Deserialize, Serialize, Debug)]
+pub struct UserIdDistributionEntry {
     stable: u32,
     lazer: u32,
+    both: u32,
     bucket: String,
+}
+
+impl From<BucketedResponse> for UserIdDistributionEntry {
+    fn from(value: BucketedResponse) -> Self {
+        Self {
+            stable: value.stable as u32,
+            lazer: value.lazer as u32,
+            both: value.both as u32,
+            bucket: value.bucket_floor,
+        }
+    }
 }
 
 async fn get_daily_unique_per_client(
@@ -26,15 +41,11 @@ async fn get_daily_unique_per_client(
         .lock()
         .await
         .database()
-        .get_daily_unique_users()
+        .get_unique_users()
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .into_iter()
-        .map(|bucket| UserIdDistributionEntry {
-            stable: bucket.stable as u32,
-            lazer: bucket.lazer as u32,
-            bucket: bucket.bucket_floor,
-        })
+        .map(UserIdDistributionEntry::from)
         .collect::<Vec<_>>()
         .apply(Json)
         .apply(Ok)

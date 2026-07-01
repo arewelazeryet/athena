@@ -9,40 +9,6 @@ use sqlx::types::time::OffsetDateTime;
 impl Database {
     pub async fn get_daily_historic_graphs(&self) -> Result<Vec<ScoresAggregate>> {
         tracing::debug!("Fetching daily historic graphs");
-        //         let aggregates: Vec<_> = query_as!(
-        //             ScoresAggregate,
-        //             r#"
-        // SELECT
-        //     day_bucket as "day_bucket!: OffsetDateTime",
-        //     ruleset_id as "ruleset_id!: i16",
-        //     client_type as "client_type!: i32",
-
-        //     hll_cardinality(user_hll) as "unique_user_count!: i64",
-        //     hll_cardinality(beatmap_hll) as "unique_beatmap_count!: i64",
-
-        //     total_daily_scores as "total_daily_scores!: BigDecimal",
-        //     daily_scores_with_replays as "daily_scores_with_replays!: BigDecimal",
-        //     daily_perfect_combos as "daily_perfect_combos!: BigDecimal",
-
-        //     daily_min_pp as "daily_min_pp!: f64",
-        //     daily_max_pp as "daily_max_pp!: f64",
-        //     daily_sum_pp as "daily_sum_pp!: f64",
-
-        //     daily_sum_total_score as "daily_sum_total_score!: BigDecimal",
-        //     daily_sum_classic_total_score as "daily_sum_classic_total_score!: BigDecimal",
-        //     daily_sum_legacy_total_score as "daily_sum_legacy_total_score!: BigDecimal",
-
-        //     daily_max_classic_total_score as "daily_max_classic_total_score!: i64",
-        //     daily_max_legacy_total_score as "daily_max_legacy_total_score!: i64",
-
-        //     daily_sum_accuracy as "daily_sum_accuracy!: f64",
-        //     daily_peak_combo as "daily_peak_combo!: i32"
-
-        // FROM scores_daily_historic;
-        //             "#
-        //         )
-        //         .fetch_all(&*self)
-        //         .await?;
 
         let aggregates: Vec<_> = query_as!(
             ScoresAggregate,

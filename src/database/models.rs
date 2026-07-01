@@ -144,7 +144,7 @@ impl From<rosu_v2::model::score::ScoreStatistics> for ScoreStatistics {
     }
 }
 
-#[derive(Default, Debug, Deserialize, Serialize, sqlx::Type)]
+#[derive(Default, Debug, Deserialize, Serialize, sqlx::Type, Clone, Copy)]
 #[sqlx(type_name = "ClientType")]
 #[serde(rename_all = "lowercase")]
 pub enum ClientType {
@@ -171,7 +171,7 @@ impl From<i32> for ClientType {
     }
 }
 
-#[derive(Default, Debug, Serialize)]
+#[derive(Default, Debug, Clone, Copy, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ScoreGameMode {
     /// osu!standard
@@ -184,20 +184,6 @@ pub enum ScoreGameMode {
     /// osu!mania
     Mania = 3,
 }
-
-// impl TryFrom<i16> for ScoreGameMode {
-//     type Error = ();
-
-//     fn try_from(value: i16) -> Result<Self, Self::Error> {
-//         match value {
-//             0 => Ok(Self::Osu),
-//             1 => Ok(Self::Taiko),
-//             2 => Ok(Self::Catch),
-//             3 => Ok(Self::Mania),
-//             _ => Err(()),
-//         }
-//     }
-// }
 
 impl From<i16> for ScoreGameMode {
     fn from(value: i16) -> Self {
@@ -212,7 +198,7 @@ impl From<i16> for ScoreGameMode {
 }
 
 #[derive(sqlx::FromRow, Serialize)]
-pub(crate) struct ScoresAggregate {
+pub struct ScoresAggregate {
     pub day_bucket: i64,
     #[sqlx(try_from = "i16")]
     pub ruleset_id: ScoreGameMode,
