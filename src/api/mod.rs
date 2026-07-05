@@ -89,25 +89,10 @@ async fn get_monthly_unique(
         .apply(Json)
         .apply(Ok)
 }
-async fn get_unique(
-    State(state): State<SharedState>,
-) -> Result<Json<Vec<UserIdDistributionEntry>>, StatusCode> {
-    state
-        .lock()
-        .await
-        .get_full_aggregate()
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-        .into_iter()
-        .map(UserIdDistributionEntry::from)
-        .collect::<Vec<_>>()
-        .apply(Json)
-        .apply(Ok)
-}
+
 pub(crate) fn router() -> Router<SharedState> {
     Router::new()
         .route("/distribution/daily", get(get_daily_unique_per_client))
         .route("/distribution/weekly", get(get_weekly_unique))
         .route("/distribution/monthly", get(get_monthly_unique))
-        .route("/distribution/all", get(get_unique))
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, ended_at FROM scores ORDER BY id DESC LIMIT 1",
+  "query": "SELECT id, ended_at FROM scores\n            WHERE ended_at >= NOW() - INTERVAL '12 hours'\n            ORDER BY id DESC LIMIT 1",
   "describe": {
     "columns": [
       {
@@ -22,5 +22,5 @@
       false
     ]
   },
-  "hash": "0adf88935508ce7ab0249d311b63e6ae47385ff95aa7f847c85c249e09ce9235"
+  "hash": "36568a44f4dfd31557a949987c99c89b2a10517cea7803d45da99d8f4161d4f0"
 }

@@ -115,7 +115,9 @@ impl Database {
     pub async fn get_last_inserted_score(&self) -> Result<LatestScore> {
         let result = query_as!(
             LatestScore,
-            r#"SELECT id, ended_at FROM scores ORDER BY id DESC LIMIT 1"#
+            r#"SELECT id, ended_at FROM scores
+            WHERE ended_at >= NOW() - INTERVAL '12 hours'
+            ORDER BY id DESC LIMIT 1"#
         )
         .fetch_one(&*self)
         .await
