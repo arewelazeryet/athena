@@ -143,15 +143,43 @@ impl AppState {
     }
 
     cache_json_pair!(
-        bucketed_aggregate,
+        daily_aggregate,
         key = "ushio:unique_users_by_id:daily",
         ty = Vec<UserIdDistributionEntry>,
-        ttl = 600,
+        ttl = 86400,
         refresh => |server| {
-            server.database().get_unique_users().await?.into_iter().map(UserIdDistributionEntry::from).collect()
+            server.database().get_daily_unique_buckets().await?.into_iter().map(UserIdDistributionEntry::from).collect()
         }
     );
 
+    cache_json_pair!(
+        weekly_aggregate,
+        key = "ushio:unique_users_by_id:weekly",
+        ty = Vec<UserIdDistributionEntry>,
+        ttl = 86400,
+        refresh => |server| {
+            server.database().get_weekly_unique_buckets().await?.into_iter().map(UserIdDistributionEntry::from).collect()
+        }
+    );
+    cache_json_pair!(
+        monthly_aggregate,
+        key = "ushio:unique_users_by_id:monthly",
+        ty = Vec<UserIdDistributionEntry>,
+        ttl = 604800,
+        refresh => |server| {
+            server.database().get_monthly_unique_buckets().await?.into_iter().map(UserIdDistributionEntry::from).collect()
+        }
+    );
+
+    cache_json_pair!(
+        full_aggregate,
+        key = "ushio:unique_users_by_id:all",
+        ty = Vec<UserIdDistributionEntry>,
+        ttl = 86400,
+        refresh => |server| {
+            server.database().get_all_unique_buckets().await?.into_iter().map(UserIdDistributionEntry::from).collect()
+        }
+    );
     pub async fn set_daily_historic_graphs(
         &mut self,
         value: &[ScoreAggregateResponse],

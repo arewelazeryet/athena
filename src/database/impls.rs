@@ -124,7 +124,112 @@ impl Database {
         result
     }
 
-    pub async fn get_unique_users(&self) -> Result<Vec<BucketedResponse>> {
+    // TODO: Deduplicate
+    pub async fn get_all_unique_buckets(&self) -> Result<Vec<BucketedResponse>> {
+        counter!("ushio.database.get_all_unique_users.query_count").increment(1);
+
+        let result = query_as!(BucketedResponse,
+                r#"
+            WITH bucketed_users AS (
+                SELECT
+                    user_id,
+                    lazer,
+                    (user_id / 2000000) * 2000000 AS bucket_floor
+                FROM scores
+                WHERE ended_at >= '2025-10-10'
+            ),
+            user_bucket_flags AS (
+                SELECT
+                    user_id,
+                    bucket_floor,
+                    BOOL_OR(lazer = true)  AS has_lazer,
+                    BOOL_OR(lazer = false) AS has_stable
+                FROM bucketed_users
+                GROUP BY user_id, bucket_floor
+            )
+            SELECT
+                CONCAT(bucket_floor / 1000000, 'M - ', (bucket_floor / 1000000) + 2, 'M') AS "bucket_floor!",
+                COUNT(*) FILTER (WHERE has_stable AND NOT has_lazer) AS "stable!",
+                COUNT(*) FILTER (WHERE has_lazer AND NOT has_stable) AS "lazer!",
+                COUNT(*) FILTER (WHERE has_lazer AND has_stable)     AS "both!"
+            FROM user_bucket_flags
+            GROUP BY bucket_floor
+            ORDER BY bucket_floor ASC;
+                "#).fetch_all(&*self).await.wrap_err("Failed to get daily unique users");
+
+        result
+    }
+
+    pub async fn get_monthly_unique_buckets(&self) -> Result<Vec<BucketedResponse>> {
+        counter!("ushio.database.get_monthly_unique_users.query_count").increment(1);
+
+        let result = query_as!(BucketedResponse,
+                r#"
+            WITH bucketed_users AS (
+                SELECT
+                    user_id,
+                    lazer,
+                    (user_id / 2000000) * 2000000 AS bucket_floor
+                FROM scores
+                WHERE ended_at >= NOW() - INTERVAL '30 days'
+            ),
+            user_bucket_flags AS (
+                SELECT
+                    user_id,
+                    bucket_floor,
+                    BOOL_OR(lazer = true)  AS has_lazer,
+                    BOOL_OR(lazer = false) AS has_stable
+                FROM bucketed_users
+                GROUP BY user_id, bucket_floor
+            )
+            SELECT
+                CONCAT(bucket_floor / 1000000, 'M - ', (bucket_floor / 1000000) + 2, 'M') AS "bucket_floor!",
+                COUNT(*) FILTER (WHERE has_stable AND NOT has_lazer) AS "stable!",
+                COUNT(*) FILTER (WHERE has_lazer AND NOT has_stable) AS "lazer!",
+                COUNT(*) FILTER (WHERE has_lazer AND has_stable)     AS "both!"
+            FROM user_bucket_flags
+            GROUP BY bucket_floor
+            ORDER BY bucket_floor ASC;
+                "#).fetch_all(&*self).await.wrap_err("Failed to get daily unique users");
+
+        result
+    }
+    pub async fn get_weekly_unique_buckets(&self) -> Result<Vec<BucketedResponse>> {
+        counter!("ushio.database.get_weekly_unique_users.query_count").increment(1);
+
+        let result = query_as!(BucketedResponse,
+                r#"
+            WITH bucketed_users AS (
+                SELECT
+                    user_id,
+                    lazer,
+                    (user_id / 2000000) * 2000000 AS bucket_floor
+                FROM scores
+                WHERE ended_at >= NOW() - INTERVAL '7 days'
+            ),
+            user_bucket_flags AS (
+                SELECT
+                    user_id,
+                    bucket_floor,
+                    BOOL_OR(lazer = true)  AS has_lazer,
+                    BOOL_OR(lazer = false) AS has_stable
+                FROM bucketed_users
+                GROUP BY user_id, bucket_floor
+            )
+            SELECT
+                CONCAT(bucket_floor / 1000000, 'M - ', (bucket_floor / 1000000) + 2, 'M') AS "bucket_floor!",
+                COUNT(*) FILTER (WHERE has_stable AND NOT has_lazer) AS "stable!",
+                COUNT(*) FILTER (WHERE has_lazer AND NOT has_stable) AS "lazer!",
+                COUNT(*) FILTER (WHERE has_lazer AND has_stable)     AS "both!"
+            FROM user_bucket_flags
+            GROUP BY bucket_floor
+            ORDER BY bucket_floor ASC;
+                "#).fetch_all(&*self).await.wrap_err("Failed to get daily unique users");
+
+        result
+    }
+
+    pub async fn get_daily_unique_buckets(&self) -> Result<Vec<BucketedResponse>> {
         counter!("ushio.database.get_daily_unique_users.query_count").increment(1);
 
         let result = query_as!(BucketedResponse,

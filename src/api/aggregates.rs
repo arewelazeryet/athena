@@ -1,5 +1,7 @@
 use apply::Apply;
 use axum::{Json, Router, extract::State, http::StatusCode, routing::get};
+use serde::{Deserialize, Serialize};
+use sqlx::query::Query;
 
 use crate::{api::models::ScoreAggregateResponse, state::SharedState};
 

@@ -17,6 +17,7 @@ use rosu_v2::model::{
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use tokio_tungstenite::tungstenite::{Error, protocol::Message};
+use tracing_subscriber::EnvFilter;
 
 use crate::{
     api::aggregates,
@@ -27,10 +28,7 @@ use crate::{
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing_subscriber::fmt()
-        .with_env_filter(tracing_subscriber::EnvFilter::new(format!(
-            "{}=debug",
-            env!("CARGO_CRATE_NAME")
-        )))
+        .with_env_filter(EnvFilter::from_default_env())
         .init();
     let _ = dotenv();
 
