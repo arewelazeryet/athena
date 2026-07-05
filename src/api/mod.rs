@@ -40,8 +40,7 @@ async fn get_daily_unique_per_client(
     state
         .lock()
         .await
-        .database()
-        .get_unique_users()
+        .get_bucketed_aggregate()
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .into_iter()
