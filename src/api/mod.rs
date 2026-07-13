@@ -52,6 +52,7 @@ async fn get_daily_unique_per_client(
         .await
         .get_daily_aggregate()
         .await
+        .inspect_err(|e| tracing::warn!("Failed to return daily unique users: {e}"))
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .into_iter()
         .map(UserIdDistributionEntry::from)
@@ -67,6 +68,7 @@ async fn get_weekly_unique(
         .await
         .get_weekly_aggregate()
         .await
+        .inspect_err(|e| tracing::warn!("Failed to return weekly unique users: {e}"))
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .into_iter()
         .map(UserIdDistributionEntry::from)
@@ -82,6 +84,7 @@ async fn get_monthly_unique(
         .await
         .get_monthly_aggregate()
         .await
+        .inspect_err(|e| tracing::warn!("Failed to return monthly unique users: {e}"))
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .into_iter()
         .map(UserIdDistributionEntry::from)
