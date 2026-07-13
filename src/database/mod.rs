@@ -48,10 +48,15 @@ impl Database {
         tracing::trace!(
             "Starting Postgres transaction with timescaledb.enable_chunkwise_aggregation = off"
         );
-        self.pool
-            .begin_with("SET LOCAL timescaledb.enable_chunkwise_aggregation = off")
-            .await
-            .wrap_err("Failed to start a Postgres transaction with disabled chunkwise aggregation")
+        let mut trans = self.pool.begin().await.wrap_err(
+            "Failed to start a Postgres transaction with disabled chunkwise aggregation",
+        )?;
+
+        sqlx::query("SET LOCAL timescaledb.enable_chunkwise_aggregation = off")
+            .execute(&mut *trans)
+            .await?;
+
+        Ok(trans)
     }
 
     pub async fn migrate(&self) -> Result<()> {
