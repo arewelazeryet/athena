@@ -171,15 +171,6 @@ impl AppState {
         }
     );
 
-    cache_json_pair!(
-        full_aggregate,
-        key = "ushio:unique_users_by_id:all",
-        ty = Vec<UserIdDistributionEntry>,
-        ttl = 86400,
-        refresh => |server| {
-            server.database().get_all_unique_buckets().await?.into_iter().map(UserIdDistributionEntry::from).collect()
-        }
-    );
     pub async fn set_daily_historic_graphs(
         &mut self,
         value: &[ScoreAggregateResponse],

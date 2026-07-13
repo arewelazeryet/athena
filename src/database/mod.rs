@@ -39,6 +39,21 @@ impl Database {
             .wrap_err("Failed to start a Postgres transaction")
     }
 
+    /// Disables chunkwise aggregation for the current query
+    ///
+    /// Massively speeds up some aggregate-style functions that don't touch dates
+    pub async fn begin_with_chunkwise_aggregation_disabled(
+        &self,
+    ) -> Result<Transaction<'static, Postgres>> {
+        tracing::trace!(
+            "Starting Postgres transaction with timescaledb.enable_chunkwise_aggregation = off"
+        );
+        self.pool
+            .begin_with("SET LOCAL timescaledb.enable_chunkwise_aggregation = off")
+            .await
+            .wrap_err("Failed to start a Postgres transaction with disabled chunkwise aggregation")
+    }
+
     pub async fn migrate(&self) -> Result<()> {
         tracing::trace!("Running migrations");
         let pool = &self.pool;

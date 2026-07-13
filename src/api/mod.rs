@@ -20,7 +20,7 @@ pub struct UserIdDistributionEntry {
     stable: u32,
     lazer: u32,
     both: u32,
-    bucket: String,
+    bucket: u32,
 }
 
 impl From<BucketedResponse> for UserIdDistributionEntry {
@@ -29,7 +29,7 @@ impl From<BucketedResponse> for UserIdDistributionEntry {
             stable: value.stable as u32,
             lazer: value.lazer as u32,
             both: value.both as u32,
-            bucket: value.bucket_floor,
+            bucket: value.bucket_floor as u32,
         }
     }
 }
