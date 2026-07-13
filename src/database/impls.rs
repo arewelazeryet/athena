@@ -215,7 +215,7 @@ impl Database {
                         BOOL_OR(lazer) AS has_lazer,
                         BOOL_OR(NOT lazer) AS has_stable
                     FROM scores
-                    WHERE ended_at >= NOW() - INTERVAL '7 days'
+                    WHERE ended_at >= NOW() - INTERVAL '24 hours'
                     GROUP BY user_id
                 ) u
                 GROUP BY "bucket_floor!"
