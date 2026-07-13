@@ -136,9 +136,9 @@ impl Database {
             r#"
             SELECT
                 (user_id / 2000000) * 2000000 AS "bucket_floor!",
-                COUNT(*) FILTER (WHERE cnt > 300 AND has_stable AND NOT has_lazer) AS "stable!",
-                COUNT(*) FILTER (WHERE cnt > 300 AND has_lazer AND NOT has_stable) AS "lazer!",
-                COUNT(*) FILTER (WHERE cnt > 300 AND has_lazer AND has_stable) AS "both!"
+                COUNT(*) FILTER (WHERE has_stable AND NOT has_lazer) AS "stable!",
+                COUNT(*) FILTER (WHERE has_lazer AND NOT has_stable) AS "lazer!",
+                COUNT(*) FILTER (WHERE has_lazer AND has_stable) AS "both!"
             FROM (
                 SELECT
                     user_id,
@@ -170,9 +170,9 @@ impl Database {
             r#"
                 SELECT
                     (user_id / 2000000) * 2000000 AS "bucket_floor!",
-                    COUNT(*) FILTER (WHERE cnt > 300 AND has_stable AND NOT has_lazer) AS "stable!",
-                    COUNT(*) FILTER (WHERE cnt > 300 AND has_lazer AND NOT has_stable) AS "lazer!",
-                    COUNT(*) FILTER (WHERE cnt > 300 AND has_lazer AND has_stable) AS "both!"
+                    COUNT(*) FILTER (WHERE has_stable AND NOT has_lazer) AS "stable!",
+                    COUNT(*) FILTER (WHERE has_lazer AND NOT has_stable) AS "lazer!",
+                    COUNT(*) FILTER (WHERE has_lazer AND has_stable) AS "both!"
                 FROM (
                     SELECT
                         user_id,
@@ -205,9 +205,9 @@ impl Database {
             r#"
                 SELECT
                     (user_id / 2000000) * 2000000 AS "bucket_floor!",
-                    COUNT(*) FILTER (WHERE cnt > 300 AND has_stable AND NOT has_lazer) AS "stable!",
-                    COUNT(*) FILTER (WHERE cnt > 300 AND has_lazer AND NOT has_stable) AS "lazer!",
-                    COUNT(*) FILTER (WHERE cnt > 300 AND has_lazer AND has_stable) AS "both!"
+                    COUNT(*) FILTER (WHERE has_stable AND NOT has_lazer) AS "stable!",
+                    COUNT(*) FILTER (WHERE has_lazer AND NOT has_stable) AS "lazer!",
+                    COUNT(*) FILTER (WHERE has_lazer AND has_stable) AS "both!"
                 FROM (
                     SELECT
                         user_id,
@@ -215,7 +215,7 @@ impl Database {
                         BOOL_OR(lazer) AS has_lazer,
                         BOOL_OR(NOT lazer) AS has_stable
                     FROM scores
-                    WHERE ended_at >= NOW() - INTERVAL '24 hours'
+                    WHERE ended_at >= NOW() - INTERVAL '1 day'
                     GROUP BY user_id
                 ) u
                 GROUP BY "bucket_floor!"
