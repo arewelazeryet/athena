@@ -37,6 +37,7 @@ async fn main() -> Result<()> {
     let state = AppState::new_shared().await?;
     let lock = state.lock().await;
     lock.database().migrate().await?;
+    drop(lock);
 
     let addr = match env::var("APP_ADDR") {
         Ok(addr) => addr,
