@@ -17,6 +17,8 @@ use rosu_v2::model::{
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use tokio_tungstenite::tungstenite::{Error, protocol::Message};
+use tower::ServiceBuilder;
+use tower_http::trace::TraceLayer;
 use tracing_subscriber::EnvFilter;
 
 use crate::{
@@ -32,31 +34,9 @@ async fn main() -> Result<()> {
         .init();
     let _ = dotenv();
 
-    let url = env::var("SCORES_SOCKET_URL")?;
     let state = AppState::new_shared().await?;
     let lock = state.lock().await;
     lock.database().migrate().await?;
-    let data = lock.database().get_last_inserted_score().await;
-    drop(lock);
-
-    let (stream, _) = tokio_tungstenite::connect_async(url)
-        .await
-        .expect("Failed to connect");
-
-    let (mut write, mut read) = stream.split();
-
-    match data {
-        Ok(LatestScore { id, .. }) => {
-            tracing::info!("Reconnecting from id = {id}");
-            write.send(Message::from(format!("{id}"))).await.unwrap()
-        }
-        Err(_) => {
-            tracing::info!("Connecting from a fresh database");
-            write.send(Message::from("connect")).await.unwrap()
-        }
-    }
-
-    let clone = Arc::clone(&state);
 
     let addr = match env::var("APP_ADDR") {
         Ok(addr) => addr,
@@ -78,7 +58,8 @@ async fn main() -> Result<()> {
     let app: Router = Router::new()
         .nest("/api", api::router())
         .nest("/api", aggregates::router())
-        .with_state(state);
+        .layer(ServiceBuilder::new().layer(TraceLayer::new_for_http()))
+        .with_state(Arc::clone(&state));
 
     describe_gauge!(
         "ushio.last_inserted_time",
