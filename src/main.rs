@@ -87,47 +87,8 @@ async fn main() -> Result<()> {
     );
 
     tokio::select! {
-        _ = process_scores(&mut read, clone) => {},
         _ = axum::serve(listener, app) => {}
     }
 
     Ok(())
-}
-
-async fn process_scores<S: StreamExt<Item = Result<Message, Error>> + Unpin>(
-    stream: &mut S,
-    database: SharedState,
-) {
-    // Pre-allocate the scores list, as the average batch should be around 1k scores
-    let mut scores_list: Vec<DatabaseScore> = Vec::with_capacity(1000);
-
-    while let Some(res) = stream.next().await {
-        match res {
-            Ok(Message::Binary(data)) => {
-                let score: Score = serde_json::from_slice(&data).unwrap();
-
-                scores_list.push(Into::<DatabaseScore>::into(score));
-            }
-            Ok(Message::Text(text)) => match text.as_str() {
-                "start-batch" => {
-                    scores_list.clear();
-                    tracing::info!("batch start");
-                    continue;
-                }
-                "end-batch" => {
-                    tracing::info!("batch end, sizeof: {}", scores_list.len());
-                    database
-                        .lock()
-                        .await
-                        .database()
-                        .insert_score_batch(scores_list.iter())
-                        .await
-                        .unwrap();
-                    continue;
-                }
-                _ => todo!(),
-            },
-            _ => todo!(),
-        }
-    }
 }
