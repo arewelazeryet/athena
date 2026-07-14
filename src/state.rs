@@ -194,6 +194,7 @@ impl AppState {
     }
 
     pub async fn get_daily_historic_graphs(&mut self) -> Result<Vec<ScoreAggregateResponse>> {
+        tracing::debug!("Getting daily historic graphs");
         let ttl: i64 = self.cache_mut().ttl("ushio:daily_graph").await?;
 
         if ttl <= 0 {
@@ -206,6 +207,8 @@ impl AppState {
                 .map(|v| ScoreAggregateResponse::from(v))
                 .collect();
             self.set_daily_historic_graphs(&graph).await?;
+        } else {
+            tracing::debug!(key = "ushio:daily_graph", ttl, "Cache hit");
         }
 
         let serialized: String = self.cache_mut().json_get("ushio:daily_graph", "$").await?;
