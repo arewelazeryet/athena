@@ -6,7 +6,7 @@ use color_eyre::{Result, eyre::Context};
 use futures::future::BoxFuture;
 use futures::stream::BoxStream;
 use sqlx::postgres::{PgPoolOptions, PgQueryResult, PgRow, PgStatement, PgTypeInfo};
-use sqlx::{Describe, Error as SqlxError, Execute, PgPool};
+use sqlx::{Describe, Error as SqlxError, Execute, PgPool, SqlStr};
 use sqlx::{Either, Executor, Postgres, Transaction, pool::PoolConnection};
 
 #[derive(Debug)]
@@ -96,11 +96,11 @@ impl<'d, 'p> Executor<'p> for &'d Database {
     }
 
     #[inline]
-    fn prepare_with<'e, 'q: 'e>(
+    fn prepare_with<'e>(
         self,
-        sql: &'q str,
+        sql: SqlStr,
         parameters: &'e [PgTypeInfo],
-    ) -> BoxFuture<'e, Result<PgStatement<'q>, SqlxError>>
+    ) -> BoxFuture<'e, Result<PgStatement, SqlxError>>
     where
         'p: 'e,
     {
@@ -108,10 +108,7 @@ impl<'d, 'p> Executor<'p> for &'d Database {
     }
 
     #[inline]
-    fn describe<'e, 'q: 'e>(
-        self,
-        sql: &'q str,
-    ) -> BoxFuture<'e, Result<Describe<Self::Database>, SqlxError>>
+    fn describe<'e>(self, sql: SqlStr) -> BoxFuture<'e, Result<Describe<Self::Database>, SqlxError>>
     where
         'p: 'e,
     {

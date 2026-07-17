@@ -35,9 +35,7 @@ async fn main() -> Result<()> {
     let _ = dotenv();
 
     let state = AppState::new_shared().await?;
-    let lock = state.lock().await;
-    lock.database().migrate().await?;
-    drop(lock);
+    state.database().migrate().await?;
 
     let addr = match env::var("APP_ADDR") {
         Ok(addr) => addr,

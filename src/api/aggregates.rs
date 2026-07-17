@@ -10,8 +10,6 @@ pub async fn get_daily_aggregate_graph(
 ) -> Result<Json<Vec<ScoreAggregateResponse>>, StatusCode> {
     tracing::trace!("Requesting daily aggregates");
     state
-        .lock()
-        .await
         .get_daily_historic_graphs()
         .await
         .inspect_err(|e| tracing::warn!("Failed to return daily historic graphs: {e}"))

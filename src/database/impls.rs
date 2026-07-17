@@ -5,13 +5,17 @@ use metrics::{Unit, counter, describe_counter, describe_gauge, gauge, histogram}
 use sqlx::{query, query_as, types::Json};
 use time::OffsetDateTime;
 
-use crate::database::{Database, models::DatabaseScore};
+use crate::{
+    api::BucketTimeRange,
+    database::{Database, models::DatabaseScore},
+};
 
 pub struct ScoreDistributionResponse {
     pub stable: i64,
     pub lazer: i64,
 }
 
+#[derive(sqlx::FromRow)]
 pub struct BucketedResponse {
     pub bucket_floor: i64,
     pub stable: i64,
@@ -126,12 +130,20 @@ impl Database {
         result
     }
 
-    pub async fn get_monthly_unique_buckets(&self) -> Result<Vec<BucketedResponse>> {
-        counter!("ushio.database.get_monthly_unique_users.query_count").increment(1);
+    pub async fn get_unique_buckets(
+        &self,
+        bucket_range: BucketTimeRange,
+    ) -> Result<Vec<BucketedResponse>> {
+        counter!(format!(
+            "ushio.database.get_{}_unique_users.query_count",
+            bucket_range
+        ))
+        .increment(1);
 
         let mut trans = self.begin_with_chunkwise_aggregation_disabled().await?;
 
-        let result = query_as!(
+        let result = sql_forge::sql_forge!(
+            sqlx::Postgres,
             BucketedResponse,
             r#"
             SELECT
@@ -142,89 +154,26 @@ impl Database {
             FROM (
                 SELECT
                     user_id,
-                    COUNT(*) AS cnt,
                     BOOL_OR(lazer) AS has_lazer,
                     BOOL_OR(NOT lazer) AS has_stable
                 FROM scores
-                WHERE ended_at >= NOW() - INTERVAL '30 days'
+                WHERE ended_at >= NOW() - INTERVAL {#interval}
                 GROUP BY user_id
             ) u
             GROUP BY "bucket_floor!"
             ORDER BY "bucket_floor!" ASC;
-        "#
+        "#,
+            (
+                #interval = match bucket_range {
+                    BucketTimeRange::Day => "'1 day'",
+                    BucketTimeRange::Week => "'7 days'",
+                    BucketTimeRange::Month => "'30 days'",
+                }
+            )
         )
         .fetch_all(&mut *trans)
         .await
         .wrap_err("Failed to get monthly unique users");
-
-        trans.commit().await?;
-
-        result
-    }
-    pub async fn get_weekly_unique_buckets(&self) -> Result<Vec<BucketedResponse>> {
-        counter!("ushio.database.get_weekly_unique_users.query_count").increment(1);
-
-        let mut trans = self.begin_with_chunkwise_aggregation_disabled().await?;
-        let result = query_as!(
-            BucketedResponse,
-            r#"
-                SELECT
-                    (user_id / 2000000) * 2000000 AS "bucket_floor!",
-                    COUNT(*) FILTER (WHERE has_stable AND NOT has_lazer) AS "stable!",
-                    COUNT(*) FILTER (WHERE has_lazer AND NOT has_stable) AS "lazer!",
-                    COUNT(*) FILTER (WHERE has_lazer AND has_stable) AS "both!"
-                FROM (
-                    SELECT
-                        user_id,
-                        COUNT(*) AS cnt,
-                        BOOL_OR(lazer) AS has_lazer,
-                        BOOL_OR(NOT lazer) AS has_stable
-                    FROM scores
-                    WHERE ended_at >= NOW() - INTERVAL '7 days'
-                    GROUP BY user_id
-                ) u
-                GROUP BY "bucket_floor!"
-                ORDER BY "bucket_floor!" ASC;
-                "#
-        )
-        .fetch_all(&mut *trans)
-        .await
-        .wrap_err("Failed to get weekly unique users");
-
-        trans.commit().await?;
-
-        result
-    }
-
-    pub async fn get_daily_unique_buckets(&self) -> Result<Vec<BucketedResponse>> {
-        counter!("ushio.database.get_daily_unique_users.query_count").increment(1);
-
-        let mut trans = self.begin_with_chunkwise_aggregation_disabled().await?;
-        let result = query_as!(
-            BucketedResponse,
-            r#"
-                SELECT
-                    (user_id / 2000000) * 2000000 AS "bucket_floor!",
-                    COUNT(*) FILTER (WHERE has_stable AND NOT has_lazer) AS "stable!",
-                    COUNT(*) FILTER (WHERE has_lazer AND NOT has_stable) AS "lazer!",
-                    COUNT(*) FILTER (WHERE has_lazer AND has_stable) AS "both!"
-                FROM (
-                    SELECT
-                        user_id,
-                        COUNT(*) AS cnt,
-                        BOOL_OR(lazer) AS has_lazer,
-                        BOOL_OR(NOT lazer) AS has_stable
-                    FROM scores
-                    WHERE ended_at >= NOW() - INTERVAL '1 day'
-                    GROUP BY user_id
-                ) u
-                GROUP BY "bucket_floor!"
-                ORDER BY "bucket_floor!" ASC;
-                "#
-        )
-        .fetch_all(&mut *trans)
-        .await
-        .wrap_err("Failed to get daily unique users");
 
         trans.commit().await?;
 

@@ -1,19 +1,20 @@
 use color_eyre::Result;
+use futures::FutureExt;
 use redis::{AsyncCommands, Client, JsonAsyncCommands};
 use serde::de::DeserializeOwned;
-use std::sync::Arc;
-use time::{OffsetDateTime, Time};
+use std::{pin::Pin, sync::Arc};
+use time::{Date, OffsetDateTime, Time};
 
 use tokio::sync::Mutex;
 
 use crate::{
-    api::{UserIdDistributionEntry, models::ScoreAggregateResponse},
+    api::{BucketTimeRange, UserIdDistributionEntry, models::ScoreAggregateResponse},
     database::Database,
 };
 
 pub(crate) struct AppState {
     database: Database,
-    cache: redis::aio::ConnectionManager,
+    cache: redis::Client,
 }
 
 fn parse_json_root<T: DeserializeOwned>(value: &str, key: &str) -> Result<T> {
@@ -32,16 +33,16 @@ macro_rules! cache_json_pair {
         refresh => |$this:ident| $($refresh:tt)+
     ) => {
         pastey::paste! {
-            pub async fn [<set_ $suffix>](&mut self, value: &$ty) -> Result<()> {
+            pub async fn [<set_ $suffix>](&self, value: &$ty) -> Result<()> {
                 let payload = serde_json::to_value(value)?;
-                let _: () = self.cache_mut().json_set($key, "$", &payload).await?;
-                let _: bool = self.cache_mut().expire($key, $ttl).await?;
+                let _: () = self.cache().await.json_set($key, "$", &payload).await?;
+                let _: bool = self.cache().await.expire($key, $ttl).await?;
 
                 tracing::debug!(key = $key, ttl = $ttl, "Updated cache entry");
                 Ok(())
             }
 
-            pub async fn [<refresh_ $suffix>](&mut self) -> Result<$ty> {
+            pub async fn [<refresh_ $suffix>](&self) -> Result<$ty> {
                 tracing::info!(key = $key, "Attempting to refresh cache entry");
                 let $this = self;
                 let value = { $($refresh)+ };
@@ -50,15 +51,15 @@ macro_rules! cache_json_pair {
                 Ok(value)
             }
 
-            pub async fn [<get_ $suffix>](&mut self) -> Result<$ty> {
-                let ttl: i64 = self.cache_mut().ttl($key).await?;
+            pub async fn [<get_ $suffix>](&self) -> Result<$ty> {
+                let ttl: i64 = self.cache().await.ttl($key).await?;
 
                 if ttl <= 0 {
                     tracing::debug!(key = $key, ttl, "Cache entry expired or missing");
                     return self.[<refresh_ $suffix>]().await;
                 }
 
-                let serialized: String = self.cache_mut().json_get($key, "$").await?;
+                let serialized: String = self.cache().await.json_get($key, "$").await?;
                 let value: $ty = parse_json_root(&serialized, $key)?;
 
                 tracing::info!(key = $key, expires_in = ttl, "Fetched cache entry");
@@ -73,17 +74,17 @@ macro_rules! cache_json_pair {
         ttl = $ttl:expr
     ) => {
         paste! {
-            pub async fn [<set_ $suffix>](&mut self, value: &$ty) -> Result<()> {
+            pub async fn [<set_ $suffix>](&self, value: &$ty) -> Result<()> {
                 let payload = serde_json::to_value(value)?;
-                let _: () = self.cache().json_set($key, "$", &payload).await?;
-                let _: bool = self.cache().expire($key, $ttl).await?;
+                let _: () = self.cache().await.json_set($key, "$", &payload).await?;
+                let _: bool = self.cache().await.expire($key, $ttl).await?;
 
                 tracing::debug!(key = $key, ttl = $ttl, "Updated cache entry");
                 Ok(())
             }
 
-            pub async fn [<get_ $suffix>](&mut self) -> Result<$ty> {
-                let ttl: i64 = self.cache().ttl($key).await?;
+            pub async fn [<get_ $suffix>](&self) -> Result<$ty> {
+                let ttl: i64 = self.cache().await.ttl($key).await?;
 
                 if ttl <= 0 {
                     tracing::debug!(key = $key, ttl, "Cache entry expired or missing");
@@ -93,14 +94,14 @@ macro_rules! cache_json_pair {
                     ));
                 }
 
-                let serialized: String = self.cache().json_get($key, "$").await?;
+                let serialized: String = self.cache().await.json_get($key, "$").await?;
                 let value: $ty = parse_json_root(&serialized, $key)?;
 
                 tracing::info!(key = $key, expires_in = ttl, "Fetched cache entry");
                 Ok(value)
             }
 
-            pub async fn [<refresh_ $suffix>](&mut self) -> Result<$ty> {
+            pub async fn [<refresh_ $suffix>](&self) -> Result<$ty> {
                 tracing::info!(key = $key, "Attempting to refresh cache entry");
                 let $this = self;
                 let value = { $($refresh)+ };
@@ -118,28 +119,31 @@ impl AppState {
         let db = Database::new(&std::env::var("DATABASE_URL")?).await?;
 
         let redis = redis::Client::open(std::env::var("CACHE_URL")?)?;
-        let redis = redis::aio::ConnectionManager::new(redis).await?;
 
         let app_state = AppState {
             database: db,
             cache: redis,
         };
-        Ok(Arc::new(Mutex::new(app_state)))
+        Ok(Arc::new(app_state))
     }
 
     pub fn database(&self) -> &Database {
         &self.database
     }
 
-    pub fn database_mut(&mut self) -> &mut Database {
-        &mut self.database
+    pub async fn cache(&self) -> redis::aio::MultiplexedConnection {
+        self.cache.get_multiplexed_async_connection().await.unwrap()
     }
 
-    pub fn cache(&self) -> &redis::aio::ConnectionManager {
-        &self.cache
-    }
-    pub fn cache_mut(&mut self) -> &mut redis::aio::ConnectionManager {
-        &mut self.cache
+    pub async fn get_unique_users(
+        &self,
+        bucket_range: BucketTimeRange,
+    ) -> Result<Vec<UserIdDistributionEntry>> {
+        match bucket_range {
+            BucketTimeRange::Day => self.get_daily_aggregate().await,
+            BucketTimeRange::Week => self.get_weekly_aggregate().await,
+            BucketTimeRange::Month => self.get_monthly_aggregate().await,
+        }
     }
 
     cache_json_pair!(
@@ -148,7 +152,7 @@ impl AppState {
         ty = Vec<UserIdDistributionEntry>,
         ttl = 86400,
         refresh => |server| {
-            server.database().get_daily_unique_buckets().await?.into_iter().map(UserIdDistributionEntry::from).collect()
+            server.database().get_unique_buckets(BucketTimeRange::Day).await?.into_iter().map(UserIdDistributionEntry::from).collect()
         }
     );
 
@@ -158,7 +162,7 @@ impl AppState {
         ty = Vec<UserIdDistributionEntry>,
         ttl = 86400,
         refresh => |server| {
-            server.database().get_weekly_unique_buckets().await?.into_iter().map(UserIdDistributionEntry::from).collect()
+            server.database().get_unique_buckets(BucketTimeRange::Week).await?.into_iter().map(UserIdDistributionEntry::from).collect()
         }
     );
     cache_json_pair!(
@@ -167,35 +171,34 @@ impl AppState {
         ty = Vec<UserIdDistributionEntry>,
         ttl = 604800,
         refresh => |server| {
-            server.database().get_monthly_unique_buckets().await?.into_iter().map(UserIdDistributionEntry::from).collect()
+            server.database().get_unique_buckets(BucketTimeRange::Month).await?.into_iter().map(UserIdDistributionEntry::from).collect()
         }
     );
 
-    pub async fn set_daily_historic_graphs(
-        &mut self,
-        value: &[ScoreAggregateResponse],
-    ) -> Result<()> {
+    pub async fn set_daily_historic_graphs(&self, value: &[ScoreAggregateResponse]) -> Result<()> {
         let payload = serde_json::to_value(value)?;
 
         let now = OffsetDateTime::now_utc();
         let tomorrow = now
-            .replace_day(now.day() + 1)?
+            .replace_day(now.saturating_add(time::Duration::days(1)).day())?
             .replace_time(Time::from_hms(1, 0, 0)?);
         let _: () = self
-            .cache_mut()
+            .cache()
+            .await
             .json_set("ushio:daily_graph", "$", &payload)
             .await?;
         let _: bool = self
-            .cache_mut()
+            .cache()
+            .await
             .expire_at("ushio:daily_graph", tomorrow.unix_timestamp())
             .await?;
 
         Ok(())
     }
 
-    pub async fn get_daily_historic_graphs(&mut self) -> Result<Vec<ScoreAggregateResponse>> {
+    pub async fn get_daily_historic_graphs(&self) -> Result<Vec<ScoreAggregateResponse>> {
         tracing::debug!("Getting daily historic graphs");
-        let ttl: i64 = self.cache_mut().ttl("ushio:daily_graph").await?;
+        let ttl: i64 = self.cache().await.ttl("ushio:daily_graph").await?;
 
         if ttl <= 0 {
             tracing::debug!(key = "ushio:daily_graph", ttl, "Cache entry expired");
@@ -211,14 +214,18 @@ impl AppState {
             tracing::debug!(key = "ushio:daily_graph", ttl, "Cache hit");
         }
 
-        let serialized: String = self.cache_mut().json_get("ushio:daily_graph", "$").await?;
+        let serialized: String = self
+            .cache()
+            .await
+            .json_get("ushio:daily_graph", "$")
+            .await?;
         let value: Vec<ScoreAggregateResponse> = parse_json_root(&serialized, "ushio:daily_graph")?;
 
         Ok(value)
     }
 }
 
-pub type SharedState = Arc<Mutex<AppState>>;
+pub type SharedState = Arc<AppState>;
 
 #[cfg(test)]
 mod tests {
