@@ -3,10 +3,7 @@ pub mod models;
 
 use std::fmt::Display;
 
-use crate::{
-    database::impls::BucketedResponse,
-    state::{AppState, SharedState},
-};
+use crate::{database::impls::BucketedResponse, state::SharedState};
 use apply::Apply as _;
 use axum::{
     Json, Router,
@@ -14,9 +11,7 @@ use axum::{
     http::StatusCode,
     routing::get,
 };
-use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
-use time::OffsetDateTime;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct UserIdDistributionEntry {

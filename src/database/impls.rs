@@ -1,8 +1,8 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use color_eyre::eyre::{Context, Result};
-use metrics::{Unit, counter, describe_counter, describe_gauge, gauge, histogram};
-use sqlx::{query, query_as, types::Json};
+use metrics::{counter, gauge, histogram};
+use sqlx::{query, query_as};
 use time::OffsetDateTime;
 
 use crate::{
@@ -26,12 +26,6 @@ pub struct BucketedResponse {
 pub struct LatestScore {
     pub ended_at: OffsetDateTime,
     pub id: i64,
-}
-
-pub enum TimePeriod {
-    Hour,
-    Day,
-    Week,
 }
 
 impl Database {

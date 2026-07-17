@@ -1,6 +1,5 @@
 use bigdecimal::ToPrimitive;
 use serde::{Deserialize, Serialize};
-use time::OffsetDateTime;
 
 use crate::database::models::{ClientType, ScoreGameMode, ScoresAggregate};
 

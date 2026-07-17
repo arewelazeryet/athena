@@ -1,10 +1,8 @@
 use sqlx::query_as;
 
 use crate::database::Database;
-use crate::database::models::{ClientType, ScoreGameMode, ScoresAggregate};
+use crate::database::models::ScoresAggregate;
 use color_eyre::Result;
-use sqlx::types::BigDecimal;
-use sqlx::types::time::OffsetDateTime;
 
 impl Database {
     pub async fn get_daily_historic_graphs(&self) -> Result<Vec<ScoresAggregate>> {

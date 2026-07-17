@@ -1,11 +1,8 @@
 use color_eyre::Result;
-use futures::FutureExt;
-use redis::{AsyncCommands, Client, JsonAsyncCommands};
+use redis::{AsyncCommands, JsonAsyncCommands};
 use serde::de::DeserializeOwned;
-use std::{pin::Pin, sync::Arc};
-use time::{Date, OffsetDateTime, Time};
-
-use tokio::sync::Mutex;
+use std::sync::Arc;
+use time::{OffsetDateTime, Time};
 
 use crate::{
     api::{BucketTimeRange, UserIdDistributionEntry, models::ScoreAggregateResponse},
@@ -225,7 +222,7 @@ impl AppState {
     }
 }
 
-pub type SharedState = Arc<AppState>;
+pub(crate) type SharedState = Arc<AppState>;
 
 #[cfg(test)]
 mod tests {

@@ -1,13 +1,10 @@
-use std::default;
 
-use rosu_mods::GameMod;
 use rosu_v2::model::{
     GameMode, Grade,
-    mods::{GameMods, serde::GameModSeed},
-    score::{self, Score},
+    score::Score,
 };
-use serde::{Deserialize, Serialize, de};
-use sqlx::{Database, prelude::FromRow, types::Json};
+use serde::{Deserialize, Serialize};
+use sqlx::prelude::FromRow;
 use time::OffsetDateTime;
 
 /// Trimmed score information for the database

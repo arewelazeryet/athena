@@ -2,29 +2,19 @@ mod api;
 mod database;
 pub mod state;
 
-use std::{env, sync::Arc, time::Duration};
+use std::{env, sync::Arc};
 
 use axum::Router;
 use color_eyre::{Result, eyre::bail};
 use dotenvy::dotenv;
-use futures::{SinkExt, StreamExt};
 use metrics::{Unit, describe_gauge};
-use rosu_v2::model::{
-    GameMode, Grade,
-    mods::GameMods,
-    score::{Score, ScoreStatistics},
-};
-use serde::{Deserialize, Serialize};
-use time::OffsetDateTime;
-use tokio_tungstenite::tungstenite::{Error, protocol::Message};
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::EnvFilter;
 
 use crate::{
     api::aggregates,
-    database::{Database, impls::LatestScore, models::DatabaseScore},
-    state::{AppState, SharedState},
+    state::AppState,
 };
 
 #[tokio::main]
