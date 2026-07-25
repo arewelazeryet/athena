@@ -145,7 +145,7 @@ impl AppState {
 
     cache_json_pair!(
         daily_aggregate,
-        key = "ushio:unique_users_by_id:daily",
+        key = "athena:unique_users_by_id:daily",
         ty = Vec<UserIdDistributionEntry>,
         ttl = 86400,
         refresh => |server| {
@@ -155,7 +155,7 @@ impl AppState {
 
     cache_json_pair!(
         weekly_aggregate,
-        key = "ushio:unique_users_by_id:weekly",
+        key = "athena:unique_users_by_id:weekly",
         ty = Vec<UserIdDistributionEntry>,
         ttl = 86400,
         refresh => |server| {
@@ -164,7 +164,7 @@ impl AppState {
     );
     cache_json_pair!(
         monthly_aggregate,
-        key = "ushio:unique_users_by_id:monthly",
+        key = "athena:unique_users_by_id:monthly",
         ty = Vec<UserIdDistributionEntry>,
         ttl = 604800,
         refresh => |server| {
@@ -182,12 +182,12 @@ impl AppState {
         let _: () = self
             .cache()
             .await
-            .json_set("ushio:daily_graph", "$", &payload)
+            .json_set("athena:daily_graph", "$", &payload)
             .await?;
         let _: bool = self
             .cache()
             .await
-            .expire_at("ushio:daily_graph", tomorrow.unix_timestamp())
+            .expire_at("athena:daily_graph", tomorrow.unix_timestamp())
             .await?;
 
         Ok(())
@@ -195,10 +195,10 @@ impl AppState {
 
     pub async fn get_daily_historic_graphs(&self) -> Result<Vec<ScoreAggregateResponse>> {
         tracing::debug!("Getting daily historic graphs");
-        let ttl: i64 = self.cache().await.ttl("ushio:daily_graph").await?;
+        let ttl: i64 = self.cache().await.ttl("athena:daily_graph").await?;
 
         if ttl <= 0 {
-            tracing::debug!(key = "ushio:daily_graph", ttl, "Cache entry expired");
+            tracing::debug!(key = "athena:daily_graph", ttl, "Cache entry expired");
             let graph: Vec<_> = self
                 .database()
                 .get_daily_historic_graphs()
@@ -208,15 +208,15 @@ impl AppState {
                 .collect();
             self.set_daily_historic_graphs(&graph).await?;
         } else {
-            tracing::debug!(key = "ushio:daily_graph", ttl, "Cache hit");
+            tracing::debug!(key = "athena:daily_graph", ttl, "Cache hit");
         }
 
         let serialized: String = self
             .cache()
             .await
-            .json_get("ushio:daily_graph", "$")
+            .json_get("athena:daily_graph", "$")
             .await?;
-        let value: Vec<ScoreAggregateResponse> = parse_json_root(&serialized, "ushio:daily_graph")?;
+        let value: Vec<ScoreAggregateResponse> = parse_json_root(&serialized, "athena:daily_graph")?;
 
         Ok(value)
     }

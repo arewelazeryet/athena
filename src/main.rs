@@ -51,7 +51,7 @@ async fn main() -> Result<()> {
         .with_state(Arc::clone(&state));
 
     describe_gauge!(
-        "ushio.last_inserted_time",
+        "athena.last_inserted_time",
         Unit::Seconds,
         "Timestamp of latest insertion"
     );

@@ -73,9 +73,9 @@ impl Database {
         trans.commit().await?;
         tracing::info!(parent: &span, "Commit: inserted {batch_length} scores");
 
-        counter!("ushio.scores_inserted_total").increment(batch_length as u64);
-        histogram!("ushio.scores_inserted_latest").record(batch_length as f64);
-        gauge!("ushio.last_inserted_time").set(
+        counter!("athena.scores_inserted_total").increment(batch_length as u64);
+        histogram!("athena.scores_inserted_latest").record(batch_length as f64);
+        gauge!("athena.last_inserted_time").set(
             SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap()
@@ -129,7 +129,7 @@ impl Database {
         bucket_range: BucketTimeRange,
     ) -> Result<Vec<BucketedResponse>> {
         counter!(format!(
-            "ushio.database.get_{}_unique_users.query_count",
+            "athena.database.get_{}_unique_users.query_count",
             bucket_range
         ))
         .increment(1);
