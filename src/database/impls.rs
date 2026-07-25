@@ -81,38 +81,47 @@ impl Database {
 
         let mut trans = self.begin_with_chunkwise_aggregation_disabled().await?;
 
-        let result = sql_forge::sql_forge!(
-            sqlx::Postgres,
-            BucketedResponse,
+        let mut builder: sqlx::QueryBuilder<sqlx::Postgres> = sqlx::QueryBuilder::new("");
+        builder.push(
             r#"
             SELECT
-                (user_id / 2000000) * 2000000 AS "bucket_floor!",
-                COUNT(*) FILTER (WHERE has_stable AND NOT has_lazer) AS "stable!",
-                COUNT(*) FILTER (WHERE has_lazer AND NOT has_stable) AS "lazer!",
-                COUNT(*) FILTER (WHERE has_lazer AND has_stable) AS "both!"
+                (user_id / 2000000) * 2000000 AS "bucket_floor",
+                COUNT(*) FILTER (WHERE has_stable AND NOT has_lazer) AS "stable",
+                COUNT(*) FILTER (WHERE has_lazer AND NOT has_stable) AS "lazer",
+                COUNT(*) FILTER (WHERE has_lazer AND has_stable) AS "both"
             FROM (
                 SELECT
                     user_id,
                     BOOL_OR(lazer) AS has_lazer,
                     BOOL_OR(NOT lazer) AS has_stable
                 FROM scores
-                WHERE ended_at >= NOW() - INTERVAL {#interval}
+                WHERE ended_at >= NOW() - INTERVAL "#,
+        );
+        match bucket_range {
+            BucketTimeRange::Day => {
+                builder.push("'1 day'");
+            }
+            BucketTimeRange::Week => {
+                builder.push("'7 days'");
+            }
+            BucketTimeRange::Month => {
+                builder.push("'30 days'");
+            }
+        }
+        builder.push(
+            r#"
                 GROUP BY user_id
             ) u
-            GROUP BY "bucket_floor!"
-            ORDER BY "bucket_floor!" ASC;
+            GROUP BY "bucket_floor"
+            ORDER BY "bucket_floor" ASC;
         "#,
-            (
-                #interval = match bucket_range {
-                    BucketTimeRange::Day => "'1 day'",
-                    BucketTimeRange::Week => "'7 days'",
-                    BucketTimeRange::Month => "'30 days'",
-                }
-            )
-        )
-        .fetch_all(&mut *trans)
-        .await
-        .wrap_err("Failed to get monthly unique users");
+        );
+
+        let query = builder.build_query_as::<BucketedResponse>();
+        let result = query
+            .fetch_all(&mut *trans)
+            .await
+            .wrap_err("Failed to get monthly unique users");
 
         trans.commit().await?;
 
