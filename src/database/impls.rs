@@ -29,62 +29,6 @@ pub struct LatestScore {
 }
 
 impl Database {
-    /// Insert a score batch into the database
-    pub async fn insert_score_batch(
-        &self,
-        scores: impl ExactSizeIterator<Item = &DatabaseScore>,
-    ) -> Result<()> {
-        let batch_length = scores.len();
-        let span = tracing::info_span!(target: "insert_score_batch", "Score insertion", batch_size = batch_length);
-        tracing::info!(parent: &span, "Inserting a new score batch");
-
-        let mut trans = self.begin().await?;
-
-        for score in scores {
-            // no useful data on insertion
-            let _ = query!(
-                r#"
-    INSERT INTO scores
-    (id, user_id, ruleset_id, beatmap_id, has_replay, grade, accuracy, max_combo, total_score, classic_total_score, total_score_without_mods, is_perfect_combo, legacy_perfect, pp, legacy_total_score, ended_at, build_id, lazer, data)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
-                "#,
-                score.id as i64,
-                score.user_id as i64,
-                score.mode as i16,
-                score.beatmap_id as i64,
-                score.replay,
-                score.grade.to_string(),
-                score.accuracy,
-                score.max_combo as i32,
-                score.total_score as i64,
-                score.classic_total_score as i64,
-                score.total_score_without_mods.map(|s| s as i64),
-                score.is_perfect_combo,
-                score.legacy_perfect,
-                score.pp as f64,
-                score.legacy_total_score as i64,
-                score.ended_at,
-                score.build_id as i16,
-                score.lazer,
-                serde_json::to_value(&score.data)?,
-            ).execute(&mut *trans).await.wrap_err("Failed to insert a result")?;
-        }
-
-        trans.commit().await?;
-        tracing::info!(parent: &span, "Commit: inserted {batch_length} scores");
-
-        counter!("athena.scores_inserted_total").increment(batch_length as u64);
-        histogram!("athena.scores_inserted_latest").record(batch_length as f64);
-        gauge!("athena.last_inserted_time").set(
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_secs_f64(),
-        );
-
-        Ok(())
-    }
-
     /// Fetch score distribution for all scores in datetime range
     pub async fn get_score_distribution_in_range(
         &self,
