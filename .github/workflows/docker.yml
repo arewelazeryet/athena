@@ -74,7 +74,7 @@ jobs:
       - name: Prepare Docker build context
         run: |
           mkdir -p dist/amd64
-          cp target/x86_64-unknown-linux-musl/release/ushio dist/amd64/ushio
+          cp target/x86_64-unknown-linux-musl/release/athena dist/amd64/athena
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -160,7 +160,7 @@ jobs:
       - name: Prepare Docker build context
         run: |
           mkdir -p dist/arm64
-          cp target/aarch64-unknown-linux-musl/release/ushio dist/arm64/ushio
+          cp target/aarch64-unknown-linux-musl/release/athena dist/arm64/athena
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

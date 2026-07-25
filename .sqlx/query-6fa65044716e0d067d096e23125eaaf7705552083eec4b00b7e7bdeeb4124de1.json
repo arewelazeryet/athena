@@ -1,0 +1,42 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                (user_id / 2000000) * 2000000 AS \"bucket_floor!\",\n                COUNT(*) FILTER (WHERE has_stable AND NOT has_lazer) AS \"stable!\",\n                COUNT(*) FILTER (WHERE has_lazer AND NOT has_stable) AS \"lazer!\",\n                COUNT(*) FILTER (WHERE has_lazer AND has_stable) AS \"both!\"\n            FROM (\n                SELECT\n                    user_id,\n                    BOOL_OR(lazer) AS has_lazer,\n                    BOOL_OR(NOT lazer) AS has_stable\n                FROM scores\n                WHERE ended_at >= NOW() - INTERVAL '30 days'\n                GROUP BY user_id\n            ) u\n            GROUP BY \"bucket_floor!\"\n            ORDER BY \"bucket_floor!\" ASC;\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "bucket_floor!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "stable!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "lazer!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "both!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "6fa65044716e0d067d096e23125eaaf7705552083eec4b00b7e7bdeeb4124de1"
+}

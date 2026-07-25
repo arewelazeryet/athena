@@ -65,6 +65,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "athena"
+version = "0.1.0"
+dependencies = [
+ "apply",
+ "axum",
+ "axum-prometheus",
+ "bigdecimal",
+ "color-eyre",
+ "dotenvy",
+ "futures",
+ "metrics",
+ "metrics-exporter-prometheus",
+ "pastey",
+ "redis",
+ "rosu-mods 0.4.1",
+ "rosu-v2",
+ "serde",
+ "serde_json",
+ "sql-forge",
+ "sqlx",
+ "time",
+ "tokio",
+ "tokio-tungstenite",
+ "tower",
+ "tower-http 0.7.0",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "atoi"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2734,36 +2764,6 @@ dependencies = [
  "idna",
  "percent-encoding",
  "serde",
-]
-
-[[package]]
-name = "ushio"
-version = "0.1.0"
-dependencies = [
- "apply",
- "axum",
- "axum-prometheus",
- "bigdecimal",
- "color-eyre",
- "dotenvy",
- "futures",
- "metrics",
- "metrics-exporter-prometheus",
- "pastey",
- "redis",
- "rosu-mods 0.4.1",
- "rosu-v2",
- "serde",
- "serde_json",
- "sql-forge",
- "sqlx",
- "time",
- "tokio",
- "tokio-tungstenite",
- "tower",
- "tower-http 0.7.0",
- "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]

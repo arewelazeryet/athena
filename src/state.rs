@@ -216,7 +216,8 @@ impl AppState {
             .await
             .json_get("athena:daily_graph", "$")
             .await?;
-        let value: Vec<ScoreAggregateResponse> = parse_json_root(&serialized, "athena:daily_graph")?;
+        let value: Vec<ScoreAggregateResponse> =
+            parse_json_root(&serialized, "athena:daily_graph")?;
 
         Ok(value)
     }

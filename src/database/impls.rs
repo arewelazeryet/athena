@@ -128,6 +128,7 @@ impl Database {
         &self,
         bucket_range: BucketTimeRange,
     ) -> Result<Vec<BucketedResponse>> {
+        tracing::info!(time_range = ?bucket_range, "Getting unique buckets");
         counter!(format!(
             "athena.database.get_{}_unique_users.query_count",
             bucket_range
@@ -170,6 +171,8 @@ impl Database {
         .wrap_err("Failed to get monthly unique users");
 
         trans.commit().await?;
+
+        tracing::info!(time_range = ?bucket_range, "Got unique buckets");
 
         result
     }

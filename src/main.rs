@@ -12,10 +12,7 @@ use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::EnvFilter;
 
-use crate::{
-    api::aggregates,
-    state::AppState,
-};
+use crate::{api::aggregates, state::AppState};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -23,6 +20,7 @@ async fn main() -> Result<()> {
         .with_env_filter(EnvFilter::from_default_env())
         .init();
     let _ = dotenv();
+    tracing::info!("Starting up");
 
     let state = AppState::new_shared().await?;
     state.database().migrate().await?;
