@@ -12,7 +12,10 @@ use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::EnvFilter;
 
-use crate::{api::aggregates, state::AppState};
+use crate::{
+    api::{aggregates, changelogs},
+    state::AppState,
+};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -45,6 +48,7 @@ async fn main() -> Result<()> {
     let app: Router = Router::new()
         .nest("/api", api::router())
         .nest("/api", aggregates::router())
+        .nest("/api/changelogs", changelogs::router())
         .layer(ServiceBuilder::new().layer(TraceLayer::new_for_http()))
         .with_state(Arc::clone(&state));
 

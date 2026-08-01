@@ -1,4 +1,5 @@
 pub mod aggregates;
+pub mod changelogs;
 pub mod models;
 
 use std::fmt::Display;

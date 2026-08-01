@@ -5,8 +5,11 @@ use std::sync::Arc;
 use time::{OffsetDateTime, Time};
 
 use crate::{
-    api::{BucketTimeRange, UserIdDistributionEntry, models::ScoreAggregateResponse},
-    database::Database,
+    api::{
+        BucketTimeRange, UserIdDistributionEntry,
+        models::{PointLineResponse, ScoreAggregateResponse, SinglePointResponse},
+    },
+    database::{Database, models::BucketSize},
 };
 
 pub(crate) struct AppState {
@@ -142,6 +145,56 @@ impl AppState {
             BucketTimeRange::Month => self.get_monthly_aggregate().await,
         }
     }
+
+    cache_json_pair!(
+        latest_changelog,
+        key = "athena:changelogs:changelog:latest",
+        ty = SinglePointResponse,
+        ttl = 60,
+        refresh => |server| {
+            server.database().get_latest().await?.into()
+        }
+    );
+
+    cache_json_pair!(
+        peak_user_count,
+        key = "athena:changelogs:peak:users",
+        ty = SinglePointResponse,
+        ttl = 300,
+        refresh => |server| server.database().get_user_count_peak().await?.into()
+    );
+
+    cache_json_pair!(
+        peak_user_ratio,
+        key = "athena:changelogs:peak:ratio",
+        ty = SinglePointResponse,
+        ttl = 300,
+        refresh => |server| server.database().get_user_ratio_peak().await?.into()
+    );
+
+    cache_json_pair!(
+        peak_user_percentile,
+        key = "athena:changelogs:peak:percentile",
+        ty = SinglePointResponse,
+        ttl = 300,
+        refresh => |server| server.database().get_user_highest_percentile_peak().await?.into()
+    );
+
+    cache_json_pair!(
+        day_user_graph,
+        key = "athena:changelogs:graph:day",
+        ty = PointLineResponse,
+        ttl = 300,
+        refresh => |server| server.database().get_past_day().await?.into()
+    );
+
+    cache_json_pair!(
+        history_user_graph,
+        key = "athena:changelogs:graph:history",
+        ty = PointLineResponse,
+        ttl = 300,
+        refresh => |server| server.database().get_history(BucketSize::Day).await?.into()
+    );
 
     cache_json_pair!(
         daily_aggregate,

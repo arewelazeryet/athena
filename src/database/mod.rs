@@ -1,4 +1,6 @@
 mod aggregates;
+mod changelog;
+pub mod history;
 pub(crate) mod impls;
 pub(crate) mod models;
 

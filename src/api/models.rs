@@ -59,3 +59,29 @@ impl From<&ScoresAggregate> for ScoreAggregateResponse {
         }
     }
 }
+
+/// Changelog API entry, simplified
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct SinglePointResponse {
+    pub timestamp: i64,
+    pub stable: i64,
+    pub lazer: i64,
+    pub sum: i64,
+    pub ratio: f64,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub struct PointLineResponse {
+    pub timestamp: Vec<i64>,
+    pub stable: Vec<i64>,
+    pub lazer: Vec<i64>,
+    pub sum: Vec<i64>,
+    pub ratio: Vec<f64>,
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub struct RatioRegressionResponse {
+    pub target_ratio: f64,
+    pub was_reached: bool,
+    pub estimated_timestamp: i64,
+}
