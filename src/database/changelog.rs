@@ -51,7 +51,7 @@ impl Database {
             target_percentage,
             "Estimating ratio target from daily history"
         );
-        let entries = self.get_history(BucketSize::Week).await?;
+        let entries = self.get_history(BucketSize::Day).await?;
         let regression = calculate_ratio_regression(entries, target_percentage)?;
 
         tracing::info!(
