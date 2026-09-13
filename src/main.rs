@@ -1,4 +1,5 @@
 mod api;
+mod cache;
 mod database;
 pub mod state;
 
