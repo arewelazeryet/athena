@@ -90,7 +90,7 @@ pub struct HistoryQuery {
     bucket_size: BucketSize,
 }
 
-pub async fn history_user_graph(
+pub async fn both_clients_user_history_graph(
     State(state): State<SharedState>,
     Query(query): Query<HistoryQuery>,
 ) -> Result<Json<PointLineResponse>, StatusCode> {
@@ -100,6 +100,40 @@ pub async fn history_user_graph(
             if let BucketSize::Day = query.bucket_size {
                 response = state
                     .get_both_clients_history_graph()
+                    .await
+                    .inspect_err(
+                        |error| tracing::warn!(%error, "Failed to fetch history graph from cache"),
+                    )
+                    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            } else {
+                response = state
+                    .database()
+                    .get_lazer_history(query.bucket_size)
+                    .await
+                    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+                    .into();
+            }
+        }
+        _ => return Err(StatusCode::BAD_REQUEST),
+    }
+    tracing::info!(
+        points = response.timestamp.len(),
+        "Served history graph data"
+    );
+
+    Ok(Json(response))
+}
+
+pub async fn complete_history_graph(
+    State(state): State<SharedState>,
+    Query(query): Query<HistoryQuery>,
+) -> Result<Json<PointLineResponse>, StatusCode> {
+    let response: PointLineResponse;
+    match (query.from, query.to) {
+        (None, None) => {
+            if let BucketSize::Day = query.bucket_size {
+                response = state
+                    .get_complete_history_graph()
                     .await
                     .inspect_err(
                         |error| tracing::warn!(%error, "Failed to fetch history graph from cache"),
@@ -153,6 +187,7 @@ pub fn router() -> Router<SharedState> {
             get(get_highest_user_count_within_85th_percentile),
         )
         .route("/charts/day", get(user_count_graph))
-        .route("/charts/history", get(history_user_graph))
+        .route("/charts/history", get(both_clients_user_history_graph))
+        .route("/charts/complete", get(complete_history_graph))
         .route("/charts/ratio_estimate/{percentage}", get(ratio_estimate))
 }

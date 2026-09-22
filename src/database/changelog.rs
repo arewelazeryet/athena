@@ -45,6 +45,42 @@ impl Database {
     }
 
     #[tracing::instrument(skip(self))]
+    pub async fn get_complete_history(&self, bucket_size: BucketSize) -> Result<Vec<DailyEntry>> {
+        tracing::debug!("Fetching daily history rows");
+        let rows = match bucket_size {
+            BucketSize::Day => query_as::<_, DailyEntry>(
+                r#"
+                SELECT
+                    -- Coalesce to remove nullchecks
+                    COALESCE(EXTRACT(EPOCH FROM day_bucket)::BIGINT, 1702252800) AS date,
+                    COALESCE(stable_avg, 0) AS stable,
+                    COALESCE(lazer_avg, 0) AS lazer
+                FROM changelog_counts_daily_aggregate
+                ORDER BY day_bucket ASC
+                    "#,
+            ),
+            BucketSize::Week => query_as::<_, DailyEntry>(
+                r#"
+                SELECT
+                    -- Coalesce to remove nullchecks
+                    COALESCE(EXTRACT(EPOCH FROM time_bucket('1 week', day_bucket))::BIGINT, 1702252800) AS date,
+                    COALESCE(AVG(stable_avg)::BIGINT, 0) AS stable,
+                    COALESCE(AVG(lazer_avg)::BIGINT, 0) AS lazer
+                FROM changelog_counts_daily_aggregate
+                GROUP BY time_bucket('1 week', day_bucket)
+                ORDER BY date ASC
+                    "#,
+            ),
+            BucketSize::Month => todo!(),
+        };
+        let rows = rows.fetch_all(&*self).await?;
+
+        tracing::info!(rows = rows.len(), "Fetched complete history rows");
+
+        Ok(rows)
+    }
+
+    #[tracing::instrument(skip(self))]
     pub async fn estimate_ratio_percentage(
         &self,
         target_percentage: f64,
