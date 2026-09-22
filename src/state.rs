@@ -120,7 +120,7 @@ crate::cache_entry!(
 
 crate::cache_entry!(
     complete_history_graph,
-    key = "athena:changelogs:graph:history",
+    key = "athena:changelogs:graph:history:complete",
     ty = PointLineResponse,
     ttl = Ttl::Seconds(86400),
     refresh => |server| server.database().get_complete_history(BucketSize::Day).await?.into()
