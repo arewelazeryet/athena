@@ -7,7 +7,7 @@ use sqlx::query_as;
 
 impl Database {
     #[tracing::instrument(skip(self))]
-    pub async fn get_history(&self, bucket_size: BucketSize) -> Result<Vec<DailyEntry>> {
+    pub async fn get_lazer_history(&self, bucket_size: BucketSize) -> Result<Vec<DailyEntry>> {
         tracing::debug!("Fetching daily history rows");
         let rows = match bucket_size {
             BucketSize::Day => query_as::<_, DailyEntry>(
@@ -18,6 +18,7 @@ impl Database {
                     COALESCE(stable_avg, 0) AS stable,
                     COALESCE(lazer_avg, 0) AS lazer
                 FROM changelog_counts_daily_aggregate
+                WHERE day_bucket >= '2023-12-15 09:00:00' -- lazer changelog start
                 ORDER BY day_bucket ASC
                     "#,
             ),
@@ -29,6 +30,7 @@ impl Database {
                     COALESCE(AVG(stable_avg)::BIGINT, 0) AS stable,
                     COALESCE(AVG(lazer_avg)::BIGINT, 0) AS lazer
                 FROM changelog_counts_daily_aggregate
+                WHERE day_bucket >= '2023-12-15 09:00:00' -- lazer changelog start
                 GROUP BY time_bucket('1 week', day_bucket)
                 ORDER BY date ASC
                     "#,
@@ -51,7 +53,7 @@ impl Database {
             target_percentage,
             "Estimating ratio target from daily history"
         );
-        let entries = self.get_history(BucketSize::Day).await?;
+        let entries = self.get_lazer_history(BucketSize::Day).await?;
         let regression = calculate_ratio_regression(entries, target_percentage)?;
 
         tracing::info!(

@@ -111,11 +111,11 @@ crate::cache_entry!(
 );
 
 crate::cache_entry!(
-    history_user_graph,
+    both_clients_history_graph,
     key = "athena:changelogs:graph:history",
     ty = PointLineResponse,
     ttl = Ttl::Seconds(300),
-    refresh => |server| server.database().get_history(BucketSize::Day).await?.into()
+    refresh => |server| server.database().get_lazer_history(BucketSize::Day).await?.into()
 );
 
 crate::cache_entry!(

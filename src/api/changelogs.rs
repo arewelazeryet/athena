@@ -99,7 +99,7 @@ pub async fn history_user_graph(
         (None, None) => {
             if let BucketSize::Day = query.bucket_size {
                 response = state
-                    .get_history_user_graph()
+                    .get_both_clients_history_graph()
                     .await
                     .inspect_err(
                         |error| tracing::warn!(%error, "Failed to fetch history graph from cache"),
@@ -108,26 +108,13 @@ pub async fn history_user_graph(
             } else {
                 response = state
                     .database()
-                    .get_history(query.bucket_size)
+                    .get_lazer_history(query.bucket_size)
                     .await
                     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
                     .into();
             }
         }
-        (None, Some(_)) | (Some(_), None) => return Err(StatusCode::BAD_REQUEST),
-        (Some(from), Some(to)) => {
-            response = state
-                .database()
-                .get_history_range(
-                    time::OffsetDateTime::from_unix_timestamp(from)
-                        .map_err(|_| StatusCode::BAD_REQUEST)?,
-                    time::OffsetDateTime::from_unix_timestamp(to)
-                        .map_err(|_| StatusCode::BAD_REQUEST)?,
-                )
-                .await
-                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-                .into()
-        }
+        _ => return Err(StatusCode::BAD_REQUEST),
     }
     tracing::info!(
         points = response.timestamp.len(),
