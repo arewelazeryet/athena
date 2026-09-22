@@ -141,8 +141,7 @@ pub async fn complete_history_graph(
                     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
             } else {
                 response = state
-                    .database()
-                    .get_lazer_history(query.bucket_size)
+                    .get_complete_weekly_history_graphs()
                     .await
                     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
                     .into();

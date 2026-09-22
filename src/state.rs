@@ -127,6 +127,14 @@ crate::cache_entry!(
 );
 
 crate::cache_entry!(
+    complete_weekly_history_graphs,
+    key = "athena:changelogs:graph:history:complete:weekly",
+    ty = PointLineResponse,
+    ttl = Ttl::Seconds(86400),
+    refresh => |server| server.database().get_complete_history(BucketSize::Week).await?.into()
+);
+
+crate::cache_entry!(
     daily_aggregate,
     key = "athena:unique_users_by_id:daily",
     ty = Vec<UserIdDistributionEntry>,
